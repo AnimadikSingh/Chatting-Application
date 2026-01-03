@@ -1,23 +1,10 @@
 import { useState, useEffect } from 'react';
 
-const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode }) => {
+const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode, senderName }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [timeLeft, setTimeLeft] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimeLeft, setLockTimeLeft] = useState(null);
-
-  // Dev Mode: Determine what to show
-  // If dev mode is on, we show the RAW content (simulated as encrypted blob if it's text)
-  // But wait, the prop `text` here is already decrypted in App.jsx. 
-  // To truly show the encrypted payload, App.jsx needs to pass it.
-  // For now, let's visualize the "decrypted" text vs "raw" text or just some indicator.
-  // Better: We'll modify App.jsx to pass `originalContent` or `isEncrypted`.
-  // Actually, the user asked to "show encrypted payload". 
-  // We'll simulate this by showing a "MATRIX VIEW" or similar if we can't access the raw here easily without major refactor.
-  // Refactor plan: Update App.jsx to pass `cipherText` to MessageBubble too.
-
-  // Implementation for now: Displaying the text. If devMode, we show extra technical data.
-  // ... (keep existing effects)
 
   useEffect(() => {
     // Self Destruct Logic
@@ -72,6 +59,11 @@ const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode }) =>
 
   return (
     <div className={`message-wrapper ${isOwn ? 'own' : 'other'} ${isLocked ? 'locked' : ''} ${timeLeft ? 'destructing' : ''}`}>
+      {/* Sender Name for Group Chats */}
+      {senderName && !isOwn && (
+        <span className="sender-name">{senderName}</span>
+      )}
+
       <div className="message-content">
         {isLocked ? (
           <div className="locked-content">
@@ -81,7 +73,6 @@ const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode }) =>
         ) : devMode ? (
           <div className="dev-content" style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#4ade80', overflowWrap: 'break-word' }}>
             <div style={{ opacity: 0.6, fontSize: '0.7rem' }}>ENCRYPTED PAYLOAD:</div>
-            {/* Simulating raw output since we decrypted it upstream. In a real app we'd pass the cipherText. */}
             {btoa(text).substring(0, 50)}...
             <div style={{ marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 4, color: 'white' }}>
               DEC: {text}
@@ -201,6 +192,14 @@ const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode }) =>
             color: #4ade80; /* Success green */
             display: flex;
             align-items: center;
+        }
+
+        .sender-name {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 4px;
+            margin-left: 12px;
+            font-weight: 500;
         }
       `}</style>
     </div>

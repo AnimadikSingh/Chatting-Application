@@ -59,17 +59,96 @@ function App() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [devMode, setDevMode] = useState(false);
+  const [typingStatus, setTypingStatus] = useState(null);
+  const lastTypingEmitted = useRef(0);
+  const typingTimeoutRef = useRef(null);
+
+  // Helper to attach all listeners consistently
+  const attachSocketListeners = (socket) => {
+    socket.off('users:list');
+    socket.on('users:list', (userList) => {
+      setUsers(userList);
+      setKnownKeys(prev => {
+        const next = { ...prev };
+        let warningMsg = null;
+        userList.forEach(u => {
+          if (prev[u.username] && prev[u.username] !== u.publicKey) {
+            // Only warn if we have a previous key for this user
+            warningMsg = `Security Alert: Identity key for ${u.username} has changed. Verify their new fingerprint.`;
+          }
+          next[u.username] = u.publicKey;
+        });
+        if (warningMsg) setSecurityWarning(warningMsg);
+        return next;
+      });
+    });
+
+    socket.off('typing');
+    socket.on('typing', ({ from, username }) => {
+      setTypingStatus({ from, username });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingStatus(null);
+      }, 3000);
+    });
+  };
+
+  // Move handleMessage up
+  const handleMessage = async (payload) => {
+    const { from, content, iv, timestamp, metadata } = payload;
+    let decryptedText = "[Decryption Error]";
+
+    try {
+      const sender = users.find(u => u.id === from);
+
+      if (sender && myKeys) {
+        let sharedKey = sharedKeys[from];
+        if (!sharedKey) {
+          const remoteKey = await crypto.importPublicKey(sender.publicKey);
+          sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
+          setSharedKeys(prev => ({ ...prev, [from]: sharedKey }));
+        }
+        decryptedText = await crypto.decryptMessage(content, iv, sharedKey);
+      }
+    } catch (err) {
+      console.error("Error processing message", err);
+    }
+
+    const newMessage = {
+      id: Date.now() + Math.random(),
+      text: decryptedText,
+      isOwn: false,
+      timestamp: timestamp || Date.now(),
+      metadata,
+      senderName: users.find(u => u.id === from)?.username
+    };
+
+    const bucketId = metadata?.isGroup ? 'everyone' : from;
+
+    setMessages(prev => {
+      const newBucket = [...(prev[bucketId] || []), newMessage];
+      return {
+        ...prev,
+        [bucketId]: newBucket
+      };
+    });
+  };
+
+  // Effect to attach handleMessage whenever dependencies change
+  useEffect(() => {
+    if (!socketRef.current) return;
+    socketRef.current.off('message:private');
+    socketRef.current.on('message:private', handleMessage);
+  }, [users, myKeys, sharedKeys]);
+
 
   const handleRegenerateKeys = async () => {
-    // 1. Disconnect
     if (socketRef.current) socketRef.current.disconnect();
 
-    // 2. Generate New Keys
     const keys = await crypto.generateKeyPair();
     setMyKeys(keys);
     const publicKeyJwk = await crypto.exportPublicKey(keys.publicKey);
 
-    // 3. Reconnect
     socketRef.current = io(SOCKET_URL);
     socketRef.current.on('connect', () => {
       socketRef.current.emit('join', {
@@ -80,23 +159,7 @@ function App() {
       setCurrentUser(prev => ({ ...prev, id: socketRef.current.id }));
     });
 
-    // Re-attach users list listener to track keys
-    socketRef.current.on('users:list', (userList) => {
-      setUsers(userList);
-      setKnownKeys(prev => {
-        const next = { ...prev };
-        userList.forEach(u => { next[u.username] = u.publicKey; });
-        return next;
-      });
-    });
-
-    // Re-attach message listener
-    // Note: The main useEffect [users, myKeys] will actually handle re-binding the message listener
-    // because myKeys changes. So we might not need to manually do it here if we trust the effect.
-    // However, to be safe and ensure immediate responsiveness:
-    socketRef.current.on('message:private', async (payload) => {
-      setMessages(prev => ({ ...prev }));
-    });
+    attachSocketListeners(socketRef.current);
   };
 
   const handleClearData = () => {
@@ -109,7 +172,6 @@ function App() {
   const handleLeaveRoom = () => {
     window.location.href = '/';
   };
-
 
   useLayoutEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -143,82 +205,9 @@ function App() {
       setSelectedUser({ id: 'everyone', username: 'Everyone', isGroup: true });
     });
 
-    socketRef.current.on('users:list', (userList) => {
-      setUsers(userList);
-
-      // key change detection logic
-      setKnownKeys(prev => {
-        const next = { ...prev };
-        let warningMsg = null;
-
-        userList.forEach(u => {
-          // Check by username, not socket ID, to catch re-logins
-          if (prev[u.username] && prev[u.username] !== u.publicKey) {
-            warningMsg = `Security Alert: Identity key for ${u.username} has changed. Verify their new fingerprint.`;
-
-            // Invalidate shared keys? 
-            // We need to find the OLD socket ID that matched this username to remove it, 
-            // but actually we just need to know that for THIS user instance we should re-verify.
-            // Simpler: Just show the warning. The sharedKey is per-socket-id anyway, so it will be regenerated.
-          }
-          next[u.username] = u.publicKey;
-        });
-
-        if (warningMsg) setSecurityWarning(warningMsg);
-        return next;
-      });
-    });
-
-    socketRef.current.on('message:private', async (payload) => {
-      // We'll decode in the effect
-      setMessages(prev => { /* trigger re-render */ return { ...prev }; });
-    });
+    attachSocketListeners(socketRef.current);
   };
 
-  // Listener for incoming encryption processing
-  useEffect(() => {
-    if (!socketRef.current) return;
-
-    const handleMessage = async (payload) => {
-      const { from, content, iv, timestamp, metadata } = payload;
-      let decryptedText = "[Decryption Error]";
-
-      try {
-        const sender = users.find(u => u.id === from);
-
-        if (sender && myKeys) {
-          let sharedKey = sharedKeys[from];
-          if (!sharedKey) {
-            const remoteKey = await crypto.importPublicKey(sender.publicKey);
-            sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
-            setSharedKeys(prev => ({ ...prev, [from]: sharedKey }));
-          }
-          decryptedText = await crypto.decryptMessage(content, iv, sharedKey);
-        }
-      } catch (err) {
-        console.error("Error processing message", err);
-      }
-
-      const newMessage = {
-        id: Date.now() + Math.random(),
-        text: decryptedText,
-        isOwn: false,
-        timestamp,
-        metadata // Pass metadata through
-      };
-
-      const bucketId = metadata?.isGroup ? 'everyone' : from;
-
-      setMessages(prev => ({
-        ...prev,
-        [bucketId]: [...(prev[bucketId] || []), newMessage]
-      }));
-    };
-
-    socketRef.current.off('message:private');
-    socketRef.current.on('message:private', handleMessage);
-
-  }, [users, myKeys, sharedKeys]);
 
   // Compute Fingerprint when selecting user
   useEffect(() => {
@@ -231,91 +220,105 @@ function App() {
 
   const sendMessage = async (e) => {
     e.preventDefault();
+
     if (!inputMessage.trim() || !selectedUser) return;
 
-    const text = inputMessage;
-    setInputMessage('');
+    try {
+      const text = inputMessage;
+      setInputMessage('');
 
-    // Prepare metadata
-    const metadata = {};
-    if (msgSettings.selfDestruct > 0) {
-      metadata.expiresIn = msgSettings.selfDestruct; // seconds
-    }
-    if (msgSettings.timeLock > 0) {
-      metadata.unlocksAt = Date.now() + (msgSettings.timeLock * 1000);
-    }
+      // Prepare metadata
+      const metadata = {};
+      if (msgSettings.selfDestruct > 0) {
+        metadata.expiresIn = msgSettings.selfDestruct; // seconds
+      }
+      if (msgSettings.timeLock > 0) {
+        metadata.unlocksAt = Date.now() + (msgSettings.timeLock * 1000);
+      }
 
-    // --- GROUP CHAT LOGIC ---
-    if (selectedUser.id === 'everyone') {
-      metadata.isGroup = true;
+      // --- GROUP CHAT LOGIC ---
+      if (selectedUser.id === 'everyone') {
+        metadata.isGroup = true;
 
-      // Broadcast to ALL users (except self)
-      // We need to loop and encrypt for each one individually
-      const recipients = users.filter(u => u.id !== currentUser.id);
+        const recipients = users.filter(u => u.id !== currentUser.id);
 
-      const sendPromises = recipients.map(async (recipient) => {
-        let sharedKey = sharedKeys[recipient.id];
-        if (!sharedKey) {
-          try {
-            const remoteKey = await crypto.importPublicKey(recipient.publicKey);
-            sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
-            // Update shared keys state silently? OR just use it here.
-            // Updating state in loop might be race-condition prone.
-            // Let's just use it.
-          } catch (err) {
-            console.error(`Failed to derive key for ${recipient.username}`, err);
-            return;
+        const sendPromises = recipients.map(async (recipient) => {
+          let sharedKey = sharedKeys[recipient.id];
+          if (!sharedKey) {
+            try {
+              const remoteKey = await crypto.importPublicKey(recipient.publicKey);
+              sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
+            } catch (err) {
+              console.error(`Failed to derive key for ${recipient.username}`, err);
+              return;
+            }
           }
+
+          const { cipherText, iv } = await crypto.encryptMessage(text, sharedKey);
+
+          socketRef.current.emit('message:private', {
+            to: recipient.id,
+            content: cipherText,
+            iv,
+            metadata
+          });
+        });
+
+        await Promise.all(sendPromises);
+
+      } else {
+        // --- DM LOGIC ---
+        let sharedKey = sharedKeys[selectedUser.id];
+        if (!sharedKey) {
+          const remoteKey = await crypto.importPublicKey(selectedUser.publicKey);
+          sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
+          setSharedKeys(prev => ({ ...prev, [selectedUser.id]: sharedKey }));
         }
 
         const { cipherText, iv } = await crypto.encryptMessage(text, sharedKey);
 
         socketRef.current.emit('message:private', {
-          to: recipient.id,
+          to: selectedUser.id,
           content: cipherText,
           iv,
           metadata
         });
-      });
-
-      await Promise.all(sendPromises);
-
-    } else {
-      // --- DM LOGIC ---
-      let sharedKey = sharedKeys[selectedUser.id];
-      if (!sharedKey) {
-        try {
-          const remoteKey = await crypto.importPublicKey(selectedUser.publicKey);
-          sharedKey = await crypto.deriveSecretKey(myKeys.privateKey, remoteKey);
-          setSharedKeys(prev => ({ ...prev, [selectedUser.id]: sharedKey }));
-        } catch (err) {
-          console.error("Key derivation failed", err);
-          return;
-        }
       }
 
-      const { cipherText, iv } = await crypto.encryptMessage(text, sharedKey);
+      const newMessage = {
+        id: Date.now(),
+        text: text,
+        isOwn: true,
+        timestamp: Date.now(),
+        metadata,
+        senderName: currentUser?.username
+      };
 
-      socketRef.current.emit('message:private', {
-        to: selectedUser.id,
-        content: cipherText,
-        iv,
-        metadata
-      });
+      setMessages(prev => ({
+        ...prev,
+        [selectedUser.id]: [...(prev[selectedUser.id] || []), newMessage]
+      }));
+    } catch (error) {
+      console.error("SendMessage Error:", error);
+      alert("Failed to send message: " + error.message);
     }
+  };
 
-    const newMessage = {
-      id: Date.now(),
-      text: text,
-      isOwn: true,
-      timestamp: Date.now(),
-      metadata
-    };
-
-    setMessages(prev => ({
-      ...prev,
-      [selectedUser.id]: [...(prev[selectedUser.id] || []), newMessage]
-    }));
+  const handleTyping = () => {
+    const now = Date.now();
+    // Throttle: emit max once every 2 seconds
+    if (now - lastTypingEmitted.current > 2000) {
+      if (selectedUser) {
+        if (selectedUser.id === 'everyone') {
+          // Fix: Use actual room ID (usually 'global') instead of 'everyone'
+          // because users joined 'global', not 'everyone'
+          socketRef.current?.emit('typing', { room: currentRoom || 'global' });
+        } else {
+          socketRef.current?.emit('typing', { to: selectedUser.id });
+        }
+        lastTypingEmitted.current = now;
+      }
+    }
   };
 
   const createPrivateRoom = () => {
@@ -482,12 +485,20 @@ function App() {
                   status={msg.isOwn ? "Sent" : null}
                   metadata={msg.metadata}
                   devMode={devMode}
+                  senderName={msg.senderName}
                 />
               ))}
               <div ref={messagesEndRef} />
             </div>
 
             <ChatControls onSettingsChange={setMsgSettings} />
+
+            {/* Typing Indicator */}
+            {typingStatus && (selectedUser?.id === 'everyone' || typingStatus.from === selectedUser?.id) && (
+              <div className="typing-indicator">
+                {typingStatus.username} is typing...
+              </div>
+            )}
 
             <form onSubmit={sendMessage} className="chat-input-area">
               <input
@@ -498,7 +509,10 @@ function App() {
                     : "Type a secured message..."
                 }
                 value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
+                onChange={(e) => {
+                  setInputMessage(e.target.value);
+                  handleTyping();
+                }}
                 className="message-input"
               />
               <button type="submit" className="send-btn">
@@ -630,6 +644,21 @@ function App() {
         .send-btn:hover {
             opacity: 0.9;
             transform: scale(1.02);
+        }
+
+        .typing-indicator {
+            padding: 0 24px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            font-style: italic;
+            margin-bottom: 4px;
+            animation: fadeInOut 2s infinite;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
         }
       `}</style>
           </>

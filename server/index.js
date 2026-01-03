@@ -51,6 +51,19 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Relay typing status
+  socket.on('typing', ({ to, room }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+
+
+    if (room) {
+      socket.to(room).emit('typing', { from: socket.id, username: user.username });
+    } else if (to) {
+      io.to(to).emit('typing', { from: socket.id, username: user.username });
+    }
+  });
+
   socket.on('disconnect', () => {
     if (users.has(socket.id)) {
       const user = users.get(socket.id);
