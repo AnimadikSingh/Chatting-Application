@@ -62,11 +62,11 @@ const ChatHeader = ({
 
             <style>{`
         .chat-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            z-index: 10;
+            padding: 20px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            z-index: 20;
         }
 
         .header-info {
@@ -78,27 +78,30 @@ const ChatHeader = ({
         .user-details {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .user-details h3 {
             margin: 0;
-            font-weight: 600;
-            color: #f3f4f6;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
         }
         
         .room-tag {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
             font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
             color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.05);
         }
         
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
         }
 
         .secure-badge {
@@ -106,10 +109,11 @@ const ChatHeader = ({
             color: #4ade80;
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(74, 222, 128, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
+            gap: 8px;
+            background: rgba(74, 222, 128, 0.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(74, 222, 128, 0.15);
             transition: var(--transition);
         }
         
@@ -118,7 +122,8 @@ const ChatHeader = ({
         }
         
         .secure-badge.interactive:hover {
-            background: rgba(74, 222, 128, 0.2);
+            background: rgba(74, 222, 128, 0.15);
+            transform: translateY(-1px);
         }
 
         .secure-badge .dot {
@@ -126,7 +131,7 @@ const ChatHeader = ({
             height: 6px;
             background: #4ade80;
             border-radius: 50%;
-            box-shadow: 0 0 5px #4ade80;
+            box-shadow: 0 0 8px #4ade80;
         }
         
         .menu-container {
@@ -139,52 +144,62 @@ const ChatHeader = ({
             color: var(--text-secondary);
             font-size: 1.5rem;
             cursor: pointer;
-            padding: 0 8px;
-            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            transition: var(--transition);
         }
         
         .menu-btn:hover {
-            background: rgba(255,255,255,0.1);
+            background: var(--surface-hover);
             color: white;
         }
         
         .dropdown-menu {
             position: absolute;
-            top: 100%;
+            top: 120%;
             right: 0;
-            margin-top: 8px;
-            background: #1f2937;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            width: 160px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            background: rgba(30, 30, 35, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            width: 180px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             z-index: 100;
+            backdrop-filter: blur(20px);
             overflow: hidden;
-            animation: slideDown 0.1s ease;
+            animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 6px;
         }
         
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
         
         .menu-item {
-            padding: 12px 16px;
+            padding: 10px 12px;
             font-size: 0.9rem;
             color: var(--text-primary);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            border-radius: 8px;
+            transition: var(--transition);
         }
         
         .menu-item:hover {
-            background: rgba(255,255,255,0.05);
+            background: var(--surface-hover);
         }
         
         .menu-item.danger {
             color: #f87171;
+            margin-top: 4px;
             border-top: 1px solid rgba(255,255,255,0.05);
+            border-radius: 0 0 8px 8px;
         }
         
         .menu-item.danger:hover {

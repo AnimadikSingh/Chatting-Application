@@ -106,14 +106,14 @@ const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode, send
         .message-wrapper {
           display: flex;
           flex-direction: column;
-          margin-bottom: 20px;
-          max-width: 75%;
+          margin-bottom: 24px;
+          max-width: 80%;
           align-self: flex-start;
-          animation: fadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          animation: fadeIn 0.4s var(--transition-spring);
         }
         
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(15px) scale(0.95); }
+          from { opacity: 0; transform: translateY(20px) scale(0.9); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
@@ -123,83 +123,99 @@ const MessageBubble = ({ text, isOwn, timestamp, status, metadata, devMode, send
         }
 
         .message-content {
-          padding: 12px 18px;
-          border-radius: 18px;
-          line-height: 1.5;
+          padding: 14px 20px;
+          border-radius: 20px;
+          border-top-left-radius: 4px;
+          line-height: 1.6;
           position: relative;
           min-width: 140px;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-          transition: all 0.3s ease;
-        }
-
-        /* SENDER STYLES (Glass + Gradient Border) */
-        .message-wrapper.own .message-content {
-            background: rgba(99, 102, 241, 0.15); /* More subtle primary */
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            border-bottom-right-radius: 4px;
-            color: #e0e7ff;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          font-size: 0.95rem;
+          transition: transform 0.2s;
         }
         
-        .message-wrapper.own:hover .message-content {
-             border-color: rgba(99, 102, 241, 0.6);
-             box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+        .message-content:hover {
+            transform: translateY(-1px);
         }
 
-        /* RECEIVER STYLES (Matte Dark) */
+        /* SENDER STYLES (Glass + Gradient) */
+        .message-wrapper.own .message-content {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 4px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(255,255,255,0.02);
+        }
+        
+        /* RECEIVER STYLES (Matte Deep) */
         .message-wrapper.other .message-content {
-          background: #18181b;
-          border-bottom-left-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #d4d4d8;
+          background: rgba(30, 30, 35, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: #e2e8f0;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         /* Destructing Effect */
         .message-wrapper.destructing .message-content {
             border: 1px solid rgba(239, 68, 68, 0.5);
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+            animation: pulseRed 2s infinite;
+        }
+        
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         
         .message-footer {
             display: flex;
             justify-content: space-between;
             align-items: flex-end; /* Align bottom */
-            margin-top: 6px;
-            gap: 12px;
+            margin-top: 8px;
+            gap: 16px;
             font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.4);
             user-select: none;
+            padding: 0 4px;
         }
         
         .metadata-icons {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
         
         .secure-lock {
-            font-size: 0.7rem;
-            opacity: 0.7;
+            font-size: 0.75rem;
+            opacity: 0.6;
         }
         
         .timer {
             color: #fca5a5;
-            font-weight: 600;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .status-tick {
             color: #4ade80; /* Success green */
             display: flex;
             align-items: center;
+            filter: drop-shadow(0 0 2px rgba(74, 222, 128, 0.5));
         }
 
         .sender-name {
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 4px;
+            color: var(--primary-light);
+            margin-bottom: 6px;
             margin-left: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
       `}</style>
     </div>

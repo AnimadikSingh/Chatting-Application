@@ -1,21 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #0f0f13;
-  --surface-color: rgba(255, 255, 255, 0.05);
-  --surface-border: rgba(255, 255, 255, 0.1);
+  --bg-color: #050507;
+  /* Deepest Void */
+  --surface-color: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.09);
+
   --primary-color: #6366f1;
-  --primary-glow: rgba(99, 102, 241, 0.5);
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --glass-bg: rgba(20, 20, 25, 0.7);
+  --primary-light: #818cf8;
+  --primary-glow: rgba(99, 102, 241, 0.4);
+  --accent-color: #ec4899;
+  /* Pink accent */
+  --accent-glow: rgba(236, 72, 153, 0.4);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  --glass-bg: rgba(15, 15, 20, 0.65);
   --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --glass-highlight: 1px solid rgba(255, 255, 255, 0.15);
+
+  --radius-xl: 24px;
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
-  --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+
+  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 * {
@@ -28,13 +45,13 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-color);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  overflow: hidden; /* App-like feel */
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 20%),
-    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 20%);
+  overflow: hidden;
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.08) 0%, transparent 40%);
 }
 
 #root {
@@ -47,15 +64,18 @@ body {
 button {
   font-family: inherit;
   cursor: pointer;
+  user-select: none;
 }
 
-input, textarea {
+input,
+textarea {
   font-family: inherit;
 }
 
-/* Scrollbar */
+/* Modern Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,9 +84,16 @@ input, textarea {
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 99px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Selection */
+::selection {
+  background: var(--primary-glow);
+  color: white;
 }

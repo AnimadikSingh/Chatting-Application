@@ -526,6 +526,8 @@ function App() {
             flex-direction: column;
             background: rgba(0, 0, 0, 0.2);
             position: relative;
+            height: 100%; /* Force height to match parent */
+            overflow: hidden; /* Prevent spillover */
         }
 
         .no-chat-selected {
@@ -564,6 +566,7 @@ function App() {
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             background: rgba(0, 0, 0, 0.2);
+            flex-shrink: 0; /* Header shouldn't shrink */
         }
 
         .header-info {
@@ -606,6 +609,7 @@ function App() {
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            min-height: 0; /* Crucial for scrolling inside flex */
         }
 
         .chat-input-area {

@@ -39,36 +39,52 @@ const ChatControls = ({ onSettingsChange }) => {
             <style>{`
         .chat-controls {
           display: flex;
-          gap: 16px;
-          padding: 10px 20px;
-          background: rgba(0, 0, 0, 0.2);
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 20px;
+          padding: 12px 24px;
+          background: rgba(0, 0, 0, 0.1);
+          border-top: 1px solid rgba(255, 255, 255, 0.03);
           font-size: 0.85rem;
-          color: var(--text-secondary);
+          color: var(--text-tertiary);
+          backdrop-filter: blur(10px);
         }
 
         .control-group {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
+        }
+        
+        label {
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
         select {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: var(--text-primary);
+          padding: 6px 12px;
+          border-radius: 99px; /* Pill shape */
           cursor: pointer;
           outline: none;
+          transition: var(--transition);
+          font-weight: 500;
+        }
+        
+        select:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
         select:focus {
             border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
         }
 
         option {
-            background: #1a1a1a;
+            background: #18181b;
+            color: white;
+            padding: 8px;
         }
       `}</style>
         </div>

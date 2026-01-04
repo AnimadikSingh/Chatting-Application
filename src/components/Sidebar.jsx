@@ -54,81 +54,93 @@ const Sidebar = ({ currentUser, users, selectedUser, onSelectUser }) => {
 
       <style>{`
         .sidebar {
-          width: 300px;
+          width: 320px;
           background: rgba(0, 0, 0, 0.2);
-          border-right: 1px solid rgba(255, 255, 255, 0.05);
+          border-right: 1px solid rgba(255, 255, 255, 0.03);
           display: flex;
           flex-direction: column;
+          backdrop-filter: blur(10px);
         }
 
         .sidebar-header {
-          padding: 20px;
+          padding: 24px;
           display: flex;
           align-items: center;
-          gap: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .users-list {
           flex: 1;
-          padding: 20px;
+          padding: 16px;
           overflow-y: auto;
         }
 
         .users-list h4 {
-          color: var(--text-secondary);
+          color: var(--text-tertiary);
           font-size: 0.75rem;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 16px;
+          letter-spacing: 1.2px;
+          margin: 24px 12px 12px;
         }
 
         .user-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px;
+          gap: 14px;
+          padding: 14px;
           border-radius: var(--radius-md);
           cursor: pointer;
           transition: var(--transition);
-          margin-bottom: 8px;
+          margin-bottom: 4px;
+          border: 1px solid transparent;
         }
 
         .user-item:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--surface-hover);
         }
 
         .user-item.active {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(99, 102, 241, 0.08);
+          border: 1px solid rgba(99, 102, 241, 0.2);
         }
 
         .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #6366f1, #d946ef);
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #6366f1, #a855f7);
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           color: white;
-          font-size: 1.1rem;
+          font-size: 1.2rem;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+          transition: transform 0.2s;
+        }
+        
+        .user-item:hover .avatar {
+            transform: scale(1.05);
         }
         
         .avatar.mine {
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
         }
 
         .user-details {
           display: flex;
           flex-direction: column;
+          gap: 2px;
         }
 
         .name {
-          font-weight: 500;
+          font-weight: 600;
           color: var(--text-primary);
+          font-size: 0.95rem;
         }
 
         .last-message {
@@ -137,20 +149,22 @@ const Sidebar = ({ currentUser, users, selectedUser, onSelectUser }) => {
         }
         
         .empty-state {
-            color: var(--text-secondary);
+            color: var(--text-tertiary);
             font-size: 0.9rem;
             text-align: center;
-            padding: 20px 0;
-            font-style: italic;
+            padding: 40px 0;
+            opacity: 0.7;
         }
         
         .status-badge {
             font-size: 0.7rem;
             color: #4ade80;
-            background: rgba(74, 222, 128, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-            border: 1px solid rgba(74, 222, 128, 0.2);
+            background: rgba(74, 222, 128, 0.08);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
       `}</style>
     </div>
