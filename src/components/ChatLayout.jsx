@@ -3,9 +3,7 @@ import React from 'react';
 const ChatLayout = ({ children }) => {
   return (
     <div className="layout-container">
-      <div className="glass-panel">
-        {children}
-      </div>
+      {children}
       <style>{`
         .layout-container {
           position: fixed;
@@ -18,25 +16,6 @@ const ChatLayout = ({ children }) => {
           justify-content: center;
           padding: 24px;
           z-index: 0;
-        }
-        
-        .glass-panel {
-          width: 100%;
-          max-width: 1280px;
-          height: 75vh; /* Reduced to 75vh for absolute safety against taskbars */
-          max-height: 800px;
-          background: var(--glass-bg);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          border: var(--glass-border);
-          box-shadow: 
-            0 0 0 1px rgba(255, 255, 255, 0.05),
-            var(--shadow-lg);
-          border-radius: var(--radius-xl);
-          display: flex;
-          overflow: hidden;
-          position: relative;
-          z-index: 10;
         }
 
         /* Ambient colored glow spots */

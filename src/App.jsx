@@ -438,93 +438,148 @@ function App() {
 
   return (
     <ChatLayout>
-      <Sidebar
-        currentUser={currentUser}
-        users={users}
-        selectedUser={selectedUser}
-        onSelectUser={setSelectedUser}
-      />
-
-      <div className="chat-area">
-        {securityWarning && (
-          <SecurityBanner
-            message={securityWarning}
-            onDismiss={() => setSecurityWarning(null)}
+      <div className="app-container">
+        {/* Sidebar Panel */}
+        <div className="glass-panel sidebar-panel">
+          <Sidebar
+            currentUser={currentUser}
+            users={users}
+            selectedUser={selectedUser}
+            onSelectUser={setSelectedUser}
           />
-        )}
+        </div>
 
-
-
-
-
-        {!selectedUser ? (
-          // ... EmptyState
-          <EmptyState
-            currentRoom={currentRoom}
-            onCreateRoom={createPrivateRoom}
-            onCopyLink={copyInviteLink}
-          />
-        ) : (
-          <>
-            <ChatHeader
-              user={selectedUser}
-              fingerprint={fingerprint}
-              onVerify={() => setShowFingerprint(true)}
-              onClearChat={() => setMessages(prev => ({ ...prev, [selectedUser.id]: [] }))}
-              onLeaveRoom={handleLeaveRoom}
-              onOpenSettings={() => setShowSettings(true)}
-            />
-
-            <div className="messages-list">
-              {(messages[selectedUser.id] || []).map(msg => (
-                <MessageBubble
-                  key={msg.id}
-                  text={msg.text}
-                  isOwn={msg.isOwn}
-                  timestamp={msg.timestamp}
-                  status={msg.isOwn ? "Sent" : null}
-                  metadata={msg.metadata}
-                  devMode={devMode}
-                  senderName={msg.senderName}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <ChatControls onSettingsChange={setMsgSettings} />
-
-            {/* Typing Indicator */}
-            {typingStatus && (selectedUser?.id === 'everyone' || typingStatus.from === selectedUser?.id) && (
-              <div className="typing-indicator">
-                {typingStatus.username} is typing...
-              </div>
+        {/* Chat Panel */}
+        <div className="glass-panel chat-panel">
+          <div className="chat-area">
+            {securityWarning && (
+              <SecurityBanner
+                message={securityWarning}
+                onDismiss={() => setSecurityWarning(null)}
+              />
             )}
 
-            <form onSubmit={sendMessage} className="chat-input-area">
-              <input
-                type="text"
-                placeholder={
-                  msgSettings.selfDestruct > 0
-                    ? `Type self-destructing message (${msgSettings.selfDestruct}s)...`
-                    : "Type a secured message..."
-                }
-                value={inputMessage}
-                onChange={(e) => {
-                  setInputMessage(e.target.value);
-                  handleTyping();
-                }}
-                className="message-input"
+            {!selectedUser ? (
+              <EmptyState
+                currentRoom={currentRoom}
+                onCreateRoom={createPrivateRoom}
+                onCopyLink={copyInviteLink}
               />
-              <button type="submit" className="send-btn">
-                Send
-              </button>
-            </form>
-            <style>{`
+            ) : (
+              <>
+                <ChatHeader
+                  user={selectedUser}
+                  fingerprint={fingerprint}
+                  onVerify={() => setShowFingerprint(true)}
+                  onClearChat={() => setMessages(prev => ({ ...prev, [selectedUser.id]: [] }))}
+                  onLeaveRoom={handleLeaveRoom}
+                  onOpenSettings={() => setShowSettings(true)}
+                />
+
+                <div className="messages-list">
+                  {(messages[selectedUser.id] || []).map(msg => (
+                    <MessageBubble
+                      key={msg.id}
+                      text={msg.text}
+                      isOwn={msg.isOwn}
+                      timestamp={msg.timestamp}
+                      status={msg.isOwn ? "Sent" : null}
+                      metadata={msg.metadata}
+                      devMode={devMode}
+                      senderName={msg.senderName}
+                    />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <ChatControls onSettingsChange={setMsgSettings} />
+
+                {/* Typing Indicator */}
+                {typingStatus && (selectedUser?.id === 'everyone' || typingStatus.from === selectedUser?.id) && (
+                  <div className="typing-indicator">
+                    {typingStatus.username} is typing...
+                  </div>
+                )}
+
+                <form onSubmit={sendMessage} className="chat-input-area">
+                  <input
+                    type="text"
+                    placeholder={
+                      msgSettings.selfDestruct > 0
+                        ? `Type self-destructing message (${msgSettings.selfDestruct}s)...`
+                        : "Type a secured message..."
+                    }
+                    value={inputMessage}
+                    onChange={(e) => {
+                      setInputMessage(e.target.value);
+                      handleTyping();
+                    }}
+                    className="message-input"
+                  />
+                  <button type="submit" className="send-btn">
+                    Send
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <FingerprintModal
+        isOpen={showFingerprint}
+        onClose={() => setShowFingerprint(false)}
+        fingerprint={fingerprint || "Generating..."}
+        username={selectedUser?.username}
+      />
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        devMode={devMode}
+        setDevMode={setDevMode}
+        onRegenerateKeys={handleRegenerateKeys}
+        onClearData={handleClearData}
+      />
+
+      <style>{`
+        .app-container {
+            display: flex;
+            gap: 24px; /* The gap requested by user */
+            width: 100%;
+            height: 75vh;
+            max-width: 1400px;
+            padding: 0 20px;
+        }
+
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.2); /* Common background for glass panels */
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            overflow: hidden; /* Ensure content respects border-radius */
+        }
+
+        .sidebar-panel {
+            width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: rgba(0, 0, 0, 0.2);
+            /* background removed, handled by glass-panel */
             position: relative;
             height: 100%; /* Force height to match parent */
             overflow: hidden; /* Prevent spillover */
@@ -659,15 +714,24 @@ function App() {
             animation: fadeInOut 2s infinite;
         }
 
+        .login-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+            
+        /* ... existing login styles ... */
+        
         @keyframes fadeInOut {
             0% { opacity: 0.3; }
             50% { opacity: 1; }
             100% { opacity: 0.3; }
         }
       `}</style>
-          </>
-        )}
-      </div>
 
       <FingerprintModal
         isOpen={showFingerprint}

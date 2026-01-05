@@ -97,3 +97,17 @@ textarea {
   background: var(--primary-glow);
   color: white;
 }
+
+/* Glass Panel Utility */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: var(--glass-border);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    var(--shadow-lg);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  position: relative;
+}
