@@ -9,8 +9,10 @@ import ChatHeader from './components/ChatHeader';
 import SettingsModal from './components/SettingsModal';
 import FingerprintModal from './components/FingerprintModal';
 import SecurityBanner from './components/SecurityBanner';
-import EmptyState from './components/EmptyState';
-import './index.css';
+import CallModal from './components/CallModal';
+import VideoCall from './components/VideoCall';
+
+// ... existing imports
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
@@ -50,30 +52,150 @@ function App() {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Security Visibility State
-  // Note: fingerprint, showFingerprint, knownKeys are already defined above unless I accidentally deleted them?
-  // Checking the file content from step 311:
-  // Lines 36-39 defined: fingerprint, showFingerprint, securityWarning, knownKeys.
-  // Lines 32-33 defined: msgSettings.
-  // Missing: showSettings, devMode.
-
   const [showSettings, setShowSettings] = useState(false);
   const [devMode, setDevMode] = useState(false);
   const [typingStatus, setTypingStatus] = useState(null);
   const lastTypingEmitted = useRef(0);
   const typingTimeoutRef = useRef(null);
 
-  // Helper to attach all listeners consistently
+  // WebRTC State
+  const [stream, setStream] = useState(null);
+  const [receivingCall, setReceivingCall] = useState(false);
+  const [caller, setCaller] = useState("");
+  const [callerSignal, setCallerSignal] = useState(null);
+  const [callAccepted, setCallAccepted] = useState(false);
+  const [callEnded, setCallEnded] = useState(false);
+  const [name, setName] = useState("");
+  const connectionRef = useRef();
+  const [remoteStream, setRemoteStream] = useState(null);
+
+  // --- WebRTC Logic ---
+  const callUser = (id) => {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((currentStream) => {
+        setStream(currentStream);
+        const peer = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        });
+
+        setCallEnded(false);
+        setCallAccepted(false); // Reset this
+
+        currentStream.getTracks().forEach(track => peer.addTrack(track, currentStream));
+
+        peer.onicecandidate = (event) => {
+          if (event.candidate) {
+            socketRef.current.emit("ice-candidate", {
+              to: id,
+              candidate: event.candidate
+            });
+          }
+        };
+
+        peer.ontrack = (event) => {
+          setRemoteStream(event.streams[0]);
+        };
+
+        peer.onnegotiationneeded = async () => {
+          try {
+            const offer = await peer.createOffer();
+            await peer.setLocalDescription(offer);
+            socketRef.current.emit("callUser", {
+              userToCall: id,
+              signalData: offer,
+              from: currentUser.id,
+              name: currentUser.username
+            });
+          } catch (err) {
+            console.error("Negotiation error:", err);
+          }
+        };
+
+        connectionRef.current = peer;
+      })
+      .catch((err) => {
+        console.error("Failed to get media", err);
+        alert("Could not access camera/microphone");
+      });
+  };
+
+  const answerCall = () => {
+    setCallAccepted(true);
+    setReceivingCall(false); // Hide modal
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((currentStream) => {
+        setStream(currentStream);
+        const peer = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        });
+
+        currentStream.getTracks().forEach(track => peer.addTrack(track, currentStream));
+
+        peer.onicecandidate = (event) => {
+          if (event.candidate) {
+            socketRef.current.emit("ice-candidate", {
+              to: caller,
+              candidate: event.candidate
+            });
+          }
+        };
+
+        peer.ontrack = (event) => {
+          setRemoteStream(event.streams[0]);
+        };
+
+        // Handle the offer we already received in callerSignal
+        peer.setRemoteDescription(new RTCSessionDescription(callerSignal));
+
+        peer.createAnswer().then(answer => {
+          peer.setLocalDescription(answer);
+          socketRef.current.emit("answerCall", { signal: answer, to: caller });
+        });
+
+        connectionRef.current = peer;
+      });
+  };
+
+  const leaveCall = () => {
+    setCallEnded(true);
+    if (connectionRef.current) {
+      connectionRef.current.close();
+    }
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setStream(null);
+    setRemoteStream(null);
+    setCallAccepted(false);
+    setReceivingCall(false);
+
+    // Notify other user
+    // Determine who 'other' is (caller or person we called)
+    const otherId = caller || (selectedUser ? selectedUser.id : null);
+    if (otherId) {
+      socketRef.current.emit("endCall", { to: otherId });
+    }
+    setCaller("");
+  };
+
+  // Add calling listeners to attachSocketListeners
   const attachSocketListeners = (socket) => {
     socket.off('users:list');
     socket.on('users:list', (userList) => {
+      // ... existing user list logic
       setUsers(userList);
       setKnownKeys(prev => {
         const next = { ...prev };
         let warningMsg = null;
         userList.forEach(u => {
           if (prev[u.username] && prev[u.username] !== u.publicKey) {
-            // Only warn if we have a previous key for this user
             warningMsg = `Security Alert: Identity key for ${u.username} has changed. Verify their new fingerprint.`;
           }
           next[u.username] = u.publicKey;
@@ -85,11 +207,47 @@ function App() {
 
     socket.off('typing');
     socket.on('typing', ({ from, username }) => {
+      // ... existing typing logic
       setTypingStatus({ from, username });
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
         setTypingStatus(null);
       }, 3000);
+    });
+
+    // --- NEW CALL LISTENERS ---
+    socket.off("callUser");
+    socket.on("callUser", ({ from, name: callerName, signal }) => {
+      setReceivingCall(true);
+      setCaller(from);
+      setName(callerName);
+      setCallerSignal(signal);
+    });
+
+    socket.off("callAccepted");
+    socket.on("callAccepted", (signal) => {
+      setCallAccepted(true);
+      connectionRef.current.setRemoteDescription(new RTCSessionDescription(signal));
+    });
+
+    socket.off("ice-candidate");
+    socket.on("ice-candidate", (candidate) => {
+      if (connectionRef.current) {
+        connectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    });
+
+    socket.off("endCall");
+    socket.on("endCall", () => {
+      setCallEnded(true);
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      if (connectionRef.current) connectionRef.current.close();
+      setStream(null);
+      setRemoteStream(null);
+      setCallAccepted(false);
+      setReceivingCall(false);
+      setCaller("");
+      alert("Call ended");
     });
   };
 
@@ -474,7 +632,26 @@ function App() {
                   onClearChat={() => setMessages(prev => ({ ...prev, [selectedUser.id]: [] }))}
                   onLeaveRoom={handleLeaveRoom}
                   onOpenSettings={() => setShowSettings(true)}
+                  onCall={() => callUser(selectedUser.id)}
                 />
+
+                {/* Call Components */}
+                {receivingCall && !callAccepted && (
+                  <CallModal
+                    caller={name}
+                    onAccept={answerCall}
+                    onDecline={leaveCall}
+                  />
+                )}
+
+                {callAccepted && !callEnded && (
+                  <VideoCall
+                    localStream={stream}
+                    remoteStream={remoteStream}
+                    onEndCall={leaveCall}
+                    peerName={selectedUser?.username}
+                  />
+                )}
 
                 <div className="messages-list">
                   {(messages[selectedUser.id] || []).map(msg => (

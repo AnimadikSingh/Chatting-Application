@@ -56,12 +56,38 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     if (!user) return;
 
-
     if (room) {
       socket.to(room).emit('typing', { from: socket.id, username: user.username });
     } else if (to) {
       io.to(to).emit('typing', { from: socket.id, username: user.username });
     }
+  });
+
+  // WebRTC Signaling
+  socket.on('callUser', ({ userToCall, signalData, from, name }) => {
+    // We need to find the socket ID for the target userToCall (which is likely a userId or username)
+    // However, the client sends 'userToCall' which might be an ID. 
+    // Let's assume userToCall IS the socket ID for simplicity, OR we look it up.
+    // In our app, 'users' map keys ARE socket IDs.
+
+    // Check if target exists
+    if (users.has(userToCall)) {
+      io.to(userToCall).emit("callUser", { signal: signalData, from, name });
+    } else {
+      // Optional: emit 'callFailed'
+    }
+  });
+
+  socket.on("answerCall", (data) => {
+    io.to(data.to).emit("callAccepted", data.signal);
+  });
+
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    io.to(to).emit("ice-candidate", candidate);
+  });
+
+  socket.on("endCall", ({ to }) => {
+    io.to(to).emit("endCall");
   });
 
   socket.on('disconnect', () => {
