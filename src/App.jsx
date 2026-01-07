@@ -77,6 +77,8 @@ function App() {
         const peer = new RTCPeerConnection({
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
             { urls: 'stun:global.stun.twilio.com:3478' }
           ]
         });
@@ -132,6 +134,8 @@ function App() {
         const peer = new RTCPeerConnection({
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
             { urls: 'stun:global.stun.twilio.com:3478' }
           ]
         });
@@ -307,7 +311,8 @@ function App() {
     setMyKeys(keys);
     const publicKeyJwk = await crypto.exportPublicKey(keys.publicKey);
 
-    socketRef.current = io(SOCKET_URL);
+    console.log("Connecting (Regen) to:", SOCKET_URL);
+    socketRef.current = io(SOCKET_URL, { transports: ['websocket', 'polling'], secure: true });
     socketRef.current.on('connect', () => {
       socketRef.current.emit('join', {
         username,
@@ -347,7 +352,8 @@ function App() {
     setMyKeys(keys);
     const publicKeyJwk = await crypto.exportPublicKey(keys.publicKey);
 
-    socketRef.current = io(SOCKET_URL);
+    console.log("Connecting (Login) to:", SOCKET_URL);
+    socketRef.current = io(SOCKET_URL, { transports: ['websocket', 'polling'], secure: true });
 
     socketRef.current.on('connect', () => {
       console.log('Connected to server');
